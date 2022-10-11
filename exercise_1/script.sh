@@ -9,7 +9,7 @@ RESET='\e[0m'
 while :
 do
     my_number=$((RANDOM % 10))
-    echo "Step ${current_step}"
+    echo "Step: ${current_step}"
     read -p "Please enter number from 0 to 9 (q - quit): " input
     case "${input}" in
         [0-9])
