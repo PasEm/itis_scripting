@@ -1,0 +1,51 @@
+dir_path="";
+name="";
+usage="Usage: $(basename "$0") -d dir_path -n script_name [-h for help]"
+if [ -z "$1" ]; then
+   echo "$usage"
+   exit 1
+fi
+while getopts ':d:n:h' opt; do
+  case "$opt" in
+    d)
+      dir_path="$OPTARG"
+      ;;
+    n)
+      name="$OPTARG"
+      ;;
+    h)
+      echo "$usage"
+      exit 0
+      ;;
+    *)
+      echo -e "Unknown command option."
+      exit 1
+      ;;
+  esac
+done
+shift "$(("$OPTIND" -1))"
+echo "$(pwd)/$name.tar.gz"
+echo '#!/bin/bash' >> "$name".sh
+echo "base64_archive='$(tar -czvf - $dir_path | base64)'" >> "$name".sh
+echo 'dir_path=$(pwd)' >> "$name".sh
+printf 'usage="Usage: $(basename $0) [-o dir_path] [-h for help]"
+      while getopts ":o:h" opt; do
+        case "$opt" in
+          o)
+            dir_path="$OPTARG"
+            ;;
+          h)
+            echo $usage
+            exit 0
+            ;;
+          *)
+            echo -e "Invalid command option."
+            exit 1
+            ;;
+        esac
+      done
+      shift "$(($OPTIND -1))"\n' >> "$name".sh
+echo "archive_path='$dir_path/$name.tar.gz'" >> "$name".sh
+echo 'echo $base64_archive | base64 -id >> $archive_path' >> "$name".sh
+echo 'tar -xzvf $archive_path -C $dir_path' >> "$name".sh
+echo 'rm -f $archive_path' >> "$name".sh
