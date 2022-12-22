@@ -38,28 +38,27 @@ if [ $valid_arguments -ne $total_arguments ]; then
   exit 1
 fi
 
-files=$(find "$dir_path" -maxdepth 1 -mindepth 1 -type f -name "$mask")
+files=($(find "$dir_path" -maxdepth 1 -mindepth 1 -type f -name "$mask"))
 files_size="${#files[@]}"
-if [ "$files_size" -lt "$number_of_cores" ]; then
-  for (( i = 0; i < files_size; i++ )); do
-    echo "$command ${files[i]} &" | bash >> /dev/null
+pid_array=()
+if [ "$files_size" -le "$core_number" ]; then
+  for file in $files; do
+    $command $file &
+    pid_array+=($!)
+  done
+
+  for pid in $pid_array; do
+    wait $pid
   done
 else
-  command_array=()
-  command_iterator=0
-  for (( i = 0; i < "$files_size"; i++ )); do
-    if [ -z "${command_array[$command_iterator]}" ]; then
-      command_array[$command_iterator]="$command ${files[i]} "
-    else
-      command_array[$command_iterator]="${command_array[$command_iterator]} && $command ${files[i]} "
+  declare -i file_index=0
+  while [ "$file_index" -ne "$files_size" ]; do
+    if [ "${#pid_array[@]}" -ne "$core_number" ]; then
+      pid_array+=($!)
+      $command ${files[$file_index]} &
+      file_index+=1
+      wait -n &
+      unset 'pid_array[-1]'
     fi
-    if [ $command_iterator -eq $((number_of_cores - 1)) ]; then
-      command_iterator=0
-    else
-      command_iterator=$((command_iterator+=1))
-    fi
-  done
-  for (( i = 0; i < "${#command_array[@]}"; i++ )); do
-    echo "${command_array[$i]} &" | bash >> /dev/null
   done
 fi
