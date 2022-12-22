@@ -39,3 +39,27 @@ if [ $valid_arguments -ne $total_arguments ]; then
 fi
 
 files=$(find "$dir_path" -maxdepth 1 -mindepth 1 -type f -name "$mask")
+files_size="${#files[@]}"
+if [ "$files_size" -lt "$number_of_cores" ]; then
+  for (( i = 0; i < files_size; i++ )); do
+    echo "$command ${files[i]} &" | bash >> /dev/null
+  done
+else
+  command_array=()
+  command_iterator=0
+  for (( i = 0; i < "$files_size"; i++ )); do
+    if [ -z "${command_array[$command_iterator]}" ]; then
+      command_array[$command_iterator]="$command ${files[i]} "
+    else
+      command_array[$command_iterator]="${command_array[$command_iterator]} && $command ${files[i]} "
+    fi
+    if [ $command_iterator -eq $((number_of_cores - 1)) ]; then
+      command_iterator=0
+    else
+      command_iterator=$((command_iterator+=1))
+    fi
+  done
+  for (( i = 0; i < "${#command_array[@]}"; i++ )); do
+    echo "${command_array[$i]} &" | bash >> /dev/null
+  done
+fi
